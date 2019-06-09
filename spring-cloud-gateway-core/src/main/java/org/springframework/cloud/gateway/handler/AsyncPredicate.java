@@ -16,15 +16,16 @@
 
 package org.springframework.cloud.gateway.handler;
 
-import java.util.function.Function;
-
 import org.reactivestreams.Publisher;
+import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.springframework.util.Assert;
+import java.util.function.Function;
 
 /**
+ * 用于条件匹配; 匹配到才能进行路由
+ *
  * @author Ben Hale
  */
 public interface AsyncPredicate<T> extends Function<T, Publisher<Boolean>> {

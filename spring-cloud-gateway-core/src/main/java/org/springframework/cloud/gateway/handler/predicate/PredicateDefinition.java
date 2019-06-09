@@ -16,15 +16,14 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import org.springframework.cloud.gateway.support.NameUtils;
+import org.springframework.validation.annotation.Validated;
 
 import javax.validation.ValidationException;
 import javax.validation.constraints.NotNull;
-
-import org.springframework.cloud.gateway.support.NameUtils;
-import org.springframework.validation.annotation.Validated;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 
 import static org.springframework.util.StringUtils.tokenizeToStringArray;
 
@@ -48,7 +47,7 @@ public class PredicateDefinition {
 			throw new ValidationException("Unable to parse PredicateDefinition text '"
 					+ text + "'" + ", must be of the form name=value");
 		}
-		setName(text.substring(0, eqIdx));
+		setName(text.substring(0, eqIdx));// Path
 
 		String[] args = tokenizeToStringArray(text.substring(eqIdx + 1), ",");
 

@@ -26,7 +26,7 @@ import org.springframework.web.server.ServerWebExchange;
  * implement cross-cutting, application-agnostic requirements such as security, timeouts,
  * and others. Specific to a Gateway
  *
- * Copied from WebFilter
+ * Copied from WebFilter 请求转发至下游服务前后的业务逻辑链
  *
  * @author Rossen Stoyanchev
  * @since 5.0

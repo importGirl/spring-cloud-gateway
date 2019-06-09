@@ -16,13 +16,6 @@
 
 package org.springframework.cloud.gateway.support;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.Expression;
@@ -31,7 +24,12 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.util.Assert;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
+ * 参数解析； 对过滤器和断言参数进行标准化处理， 将表达式和生成的键进行转换
+ *
  * @author Spencer Gibb
  */
 public interface ShortcutConfigurable {
@@ -48,6 +46,13 @@ public interface ShortcutConfigurable {
 		return key;
 	}
 
+	/**
+	 * 解析 spring el 表达式
+	 * @param parser
+	 * @param beanFactory
+	 * @param entryValue
+	 * @return
+	 */
 	static Object getValue(SpelExpressionParser parser, BeanFactory beanFactory,
 			String entryValue) {
 		Object value;
@@ -55,6 +60,7 @@ public interface ShortcutConfigurable {
 		if (rawValue != null) {
 			rawValue = rawValue.trim();
 		}
+		// 解析 ${} 表达式
 		if (rawValue != null && rawValue.startsWith("#{") && entryValue.endsWith("}")) {
 			// assume it's spel
 			StandardEvaluationContext context = new StandardEvaluationContext();
@@ -87,6 +93,9 @@ public interface ShortcutConfigurable {
 
 	enum ShortcutType {
 
+		/**
+		 * 默认实现
+		 */
 		DEFAULT {
 			@Override
 			public Map<String, Object> normalize(Map<String, String> args,

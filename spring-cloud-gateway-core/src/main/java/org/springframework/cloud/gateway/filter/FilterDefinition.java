@@ -16,14 +16,13 @@
 
 package org.springframework.cloud.gateway.filter;
 
+import org.springframework.cloud.gateway.support.NameUtils;
+import org.springframework.validation.annotation.Validated;
+
+import javax.validation.constraints.NotNull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.validation.constraints.NotNull;
-
-import org.springframework.cloud.gateway.support.NameUtils;
-import org.springframework.validation.annotation.Validated;
 
 import static org.springframework.util.StringUtils.tokenizeToStringArray;
 
@@ -52,7 +51,8 @@ public class FilterDefinition {
 		String[] args = tokenizeToStringArray(text.substring(eqIdx + 1), ",");
 
 		for (int i = 0; i < args.length; i++) {
-			this.args.put(NameUtils.generateName(i), args[i]);
+			this.args.put(NameUtils.generateName(i), args[i]);// "_genkey_0" ->
+																// "X-Response-Default-Foo"
 		}
 	}
 

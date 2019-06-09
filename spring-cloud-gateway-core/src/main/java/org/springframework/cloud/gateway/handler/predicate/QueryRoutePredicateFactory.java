@@ -16,15 +16,14 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Predicate;
-
-import javax.validation.constraints.NotEmpty;
-
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.server.ServerWebExchange;
+
+import javax.validation.constraints.NotEmpty;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * @author Spencer Gibb
@@ -54,6 +53,7 @@ public class QueryRoutePredicateFactory
 	@Override
 	public Predicate<ServerWebExchange> apply(Config config) {
 		return exchange -> {
+			// 根据正则判断
 			if (!StringUtils.hasText(config.regexp)) {
 				// check existence of header
 				return exchange.getRequest().getQueryParams().containsKey(config.param);

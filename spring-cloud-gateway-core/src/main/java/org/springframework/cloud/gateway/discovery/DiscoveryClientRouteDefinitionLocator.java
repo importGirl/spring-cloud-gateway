@@ -16,14 +16,8 @@
 
 package org.springframework.cloud.gateway.discovery;
 
-import java.net.URI;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Flux;
-
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
@@ -37,9 +31,14 @@ import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.SimpleEvaluationContext;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
+
+import java.net.URI;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
- * TODO: change to RouteLocator? use java dsl
+ * TODO: change to RouteLocator? use java dsl 调用 DiscoveryClient 获取注册在注册中心的服务列表
  *
  * @author Spencer Gibb
  */
@@ -52,7 +51,7 @@ public class DiscoveryClientRouteDefinitionLocator implements RouteDefinitionLoc
 
 	private final DiscoveryLocatorProperties properties;
 
-	private final String routeIdPrefix;
+	private final String routeIdPrefix; // 路由编号前缀 discoveryClient类名 + _
 
 	private final SimpleEvaluationContext evalCtxt;
 
@@ -93,21 +92,25 @@ public class DiscoveryClientRouteDefinitionLocator implements RouteDefinitionLoc
 			};
 		}
 
-		return Flux.fromIterable(discoveryClient.getServices())
-				.map(discoveryClient::getInstances)
+		return Flux.fromIterable(discoveryClient.getServices()) // 获取服务列表
+				.map(discoveryClient::getInstances) // 获取服务对象
 				.filter(instances -> !instances.isEmpty())
 				.map(instances -> instances.get(0)).filter(includePredicate)
 				.map(instance -> {
 					String serviceId = instance.getServiceId();
 
 					RouteDefinition routeDefinition = new RouteDefinition();
+					// 设置id
 					routeDefinition.setId(this.routeIdPrefix + serviceId);
 					String uri = urlExpr.getValue(evalCtxt, instance, String.class);
+					// 设置uri 格式：lb://${serviceId}
 					routeDefinition.setUri(URI.create(uri));
 
+					// ServiceInstance 装饰对象
 					final ServiceInstance instanceForEval = new DelegatingServiceInstance(
 							instance, properties);
 
+					// 设置 Predicates
 					for (PredicateDefinition original : this.properties.getPredicates()) {
 						PredicateDefinition predicate = new PredicateDefinition();
 						predicate.setName(original.getName());
@@ -120,6 +123,7 @@ public class DiscoveryClientRouteDefinitionLocator implements RouteDefinitionLoc
 						routeDefinition.getPredicates().add(predicate);
 					}
 
+					// 设置 Filters
 					for (FilterDefinition original : this.properties.getFilters()) {
 						FilterDefinition filter = new FilterDefinition();
 						filter.setName(original.getName());
@@ -150,6 +154,7 @@ public class DiscoveryClientRouteDefinitionLocator implements RouteDefinitionLoc
 		}
 	}
 
+	/** 装饰模式, 增强getServiceId方法 */
 	private static class DelegatingServiceInstance implements ServiceInstance {
 
 		final ServiceInstance delegate;

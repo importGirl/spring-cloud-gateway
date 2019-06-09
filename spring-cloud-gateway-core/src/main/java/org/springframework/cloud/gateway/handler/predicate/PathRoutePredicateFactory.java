@@ -16,15 +16,8 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.core.style.ToStringCreator;
 import org.springframework.http.server.PathContainer;
 import org.springframework.util.CollectionUtils;
@@ -33,6 +26,12 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPattern.PathMatchInfo;
 import org.springframework.web.util.pattern.PathPatternParser;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.putUriTemplateVariables;
 import static org.springframework.http.server.PathContainer.parsePath;
@@ -53,6 +52,13 @@ public class PathRoutePredicateFactory
 		super(Config.class);
 	}
 
+	/**
+	 * 打印日志
+ 	 * @param prefix
+	 * @param desired
+	 * @param actual
+	 * @param match
+	 */
 	private static void traceMatch(String prefix, Object desired, Object actual,
 			boolean match) {
 		if (log.isTraceEnabled()) {
@@ -78,6 +84,7 @@ public class PathRoutePredicateFactory
 
 	@Override
 	public Predicate<ServerWebExchange> apply(Config config) {
+		// 带参数 path (例： /foo/{segment}) 集合
 		final ArrayList<PathPattern> pathPatterns = new ArrayList<>();
 		synchronized (this.pathPatternParser) {
 			pathPatternParser.setMatchOptionalTrailingSeparator(
@@ -88,15 +95,19 @@ public class PathRoutePredicateFactory
 			});
 		}
 		return exchange -> {
+			// 获得请求路径
 			PathContainer path = parsePath(exchange.getRequest().getURI().getRawPath());
 
+			// 查找对应的 PathPattern
 			Optional<PathPattern> optionalPathPattern = pathPatterns.stream()
 					.filter(pattern -> pattern.matches(path)).findFirst();
 
 			if (optionalPathPattern.isPresent()) {
 				PathPattern pathPattern = optionalPathPattern.get();
 				traceMatch("Pattern", pathPattern.getPatternString(), path, true);
+				// 解析路径参数 path=/foo/123 <=> /foo/{segment}
 				PathMatchInfo pathMatchInfo = pathPattern.matchAndExtract(path);
+				// 设置uri 路径参数：uriTemplateVariables
 				putUriTemplateVariables(exchange, pathMatchInfo.getUriVariables());
 				return true;
 			}

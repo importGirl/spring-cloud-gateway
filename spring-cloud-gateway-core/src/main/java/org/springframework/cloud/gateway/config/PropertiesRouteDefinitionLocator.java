@@ -22,6 +22,8 @@ import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 
 /**
+ * 从配置文件读取路由配置
+ *
  * @author Spencer Gibb
  */
 public class PropertiesRouteDefinitionLocator implements RouteDefinitionLocator {
@@ -32,6 +34,10 @@ public class PropertiesRouteDefinitionLocator implements RouteDefinitionLocator 
 		this.properties = properties;
 	}
 
+	/**
+	 * 从GateWayProperties 获取路由配置数组
+	 * @return
+	 */
 	@Override
 	public Flux<RouteDefinition> getRouteDefinitions() {
 		return Flux.fromIterable(this.properties.getRoutes());

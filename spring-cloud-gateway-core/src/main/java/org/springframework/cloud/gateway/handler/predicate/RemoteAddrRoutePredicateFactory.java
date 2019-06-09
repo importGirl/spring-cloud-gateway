@@ -16,24 +16,22 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
+import io.netty.handler.ipfilter.IpFilterRuleType;
+import io.netty.handler.ipfilter.IpSubnetFilterRule;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.cloud.gateway.support.ipresolver.RemoteAddressResolver;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.server.ServerWebExchange;
+
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import io.netty.handler.ipfilter.IpFilterRuleType;
-import io.netty.handler.ipfilter.IpSubnetFilterRule;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.cloud.gateway.support.ipresolver.RemoteAddressResolver;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.server.ServerWebExchange;
 
 import static org.springframework.cloud.gateway.support.ShortcutConfigurable.ShortcutType.GATHER_LIST;
 
@@ -71,9 +69,11 @@ public class RemoteAddrRoutePredicateFactory
 
 	@Override
 	public Predicate<ServerWebExchange> apply(Config config) {
+		// 获取配置 ip 范围
 		List<IpSubnetFilterRule> sources = convert(config.sources);
 
 		return exchange -> {
+			// 解析请求ip地址
 			InetSocketAddress remoteAddress = config.remoteAddressResolver
 					.resolve(exchange);
 			if (remoteAddress != null && remoteAddress.getAddress() != null) {
@@ -85,6 +85,7 @@ public class RemoteAddrRoutePredicateFactory
 							+ host);
 				}
 
+				// 判断是否在指定 ip 范围内
 				for (IpSubnetFilterRule source : sources) {
 					if (source.matches(remoteAddress)) {
 						return true;
@@ -115,6 +116,9 @@ public class RemoteAddrRoutePredicateFactory
 		@NotEmpty
 		private List<String> sources = new ArrayList<>();
 
+		/**
+		 * ip地址解析器
+		 */
 		@NotNull
 		private RemoteAddressResolver remoteAddressResolver = new RemoteAddressResolver() {
 		};

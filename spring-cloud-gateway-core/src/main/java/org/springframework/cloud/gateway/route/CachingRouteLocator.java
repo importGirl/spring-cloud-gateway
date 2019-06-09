@@ -16,18 +16,19 @@
 
 package org.springframework.cloud.gateway.route;
 
+import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
+import reactor.cache.CacheFlux;
+import reactor.core.publisher.Flux;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import reactor.cache.CacheFlux;
-import reactor.core.publisher.Flux;
-
-import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
-import org.springframework.context.ApplicationListener;
-import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-
 /**
+ * 缓存路由 RouteLocator 实现
+ *
  * @author Spencer Gibb
  */
 public class CachingRouteLocator

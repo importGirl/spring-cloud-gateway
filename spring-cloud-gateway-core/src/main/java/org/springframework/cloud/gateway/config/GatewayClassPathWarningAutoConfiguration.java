@@ -33,6 +33,7 @@ public class GatewayClassPathWarningAutoConfiguration {
 
 	private static final String BORDER = "\n\n**********************************************************\n\n";
 
+	/** 检查是否错误导入 web包 */
 	@Configuration
 	@ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")
 	protected static class SpringMvcFoundOnClasspathConfiguration {
@@ -45,6 +46,7 @@ public class GatewayClassPathWarningAutoConfiguration {
 
 	}
 
+	/** 检查是否导入 webflux 包 */
 	@Configuration
 	@ConditionalOnMissingClass("org.springframework.web.reactive.DispatcherHandler")
 	protected static class WebfluxMissingFromClasspathConfiguration {

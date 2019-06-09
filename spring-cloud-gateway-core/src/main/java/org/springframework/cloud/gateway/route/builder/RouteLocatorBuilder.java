@@ -16,16 +16,15 @@
 
 package org.springframework.cloud.gateway.route.builder;
 
+import org.springframework.cloud.gateway.route.Route;
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.context.ConfigurableApplicationContext;
+import reactor.core.publisher.Flux;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-
-import reactor.core.publisher.Flux;
-
-import org.springframework.cloud.gateway.route.Route;
-import org.springframework.cloud.gateway.route.RouteLocator;
-import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * Used to build a {@link RouteLocator}
@@ -67,6 +66,7 @@ public class RouteLocatorBuilder {
 		 * @return a {@link Builder}
 		 */
 		public Builder route(String id, Function<PredicateSpec, Route.AsyncBuilder> fn) {
+			// 创建 RouteSpec -> PredicateSpec
 			Route.AsyncBuilder routeBuilder = fn.apply(new RouteSpec(this).id(id));
 			add(routeBuilder);
 			return this;

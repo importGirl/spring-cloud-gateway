@@ -16,15 +16,6 @@
 
 package org.springframework.cloud.gateway.route;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Predicate;
-
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.handler.AsyncPredicate;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
@@ -33,22 +24,29 @@ import org.springframework.util.Assert;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+import java.util.*;
+import java.util.function.Predicate;
+
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.toAsyncPredicate;
 
 /**
+ * 表示一个具体的路由信息载体; uri, id, predicate, gatewayfilters, order
+ *
  * @author Spencer Gibb
  */
 public class Route implements Ordered {
 
-	private final String id;
+	private final String id; // route 标识符
 
-	private final URI uri;
+	private final URI uri; // uri
 
-	private final int order;
+	private final int order; // 多个route之间的排序，值越小越先执行
 
-	private final AsyncPredicate<ServerWebExchange> predicate;
+	private final AsyncPredicate<ServerWebExchange> predicate; // Route 的前置条件，
+																// 满足相应的条件才会被路由到目的地uri
 
-	private final List<GatewayFilter> gatewayFilters;
+	private final List<GatewayFilter> gatewayFilters; // 处理切面逻辑，如路由转发前修改请求头
 
 	private Route(String id, URI uri, int order,
 			AsyncPredicate<ServerWebExchange> predicate,

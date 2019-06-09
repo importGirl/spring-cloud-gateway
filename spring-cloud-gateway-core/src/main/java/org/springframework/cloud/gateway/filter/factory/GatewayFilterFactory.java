@@ -16,15 +16,17 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.util.function.Consumer;
-
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.support.Configurable;
 import org.springframework.cloud.gateway.support.NameUtils;
 import org.springframework.cloud.gateway.support.ShortcutConfigurable;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
+import java.util.function.Consumer;
+
 /**
+ * gatewayfilter 工厂类； 用于生产 GatewayFilter
+ *
  * @author Spencer Gibb
  */
 @FunctionalInterface
