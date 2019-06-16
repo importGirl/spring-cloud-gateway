@@ -21,6 +21,7 @@ import reactor.core.publisher.Mono;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 
 /**
+ * 设置响应 header 属性
  * @author Spencer Gibb
  */
 public class SetResponseHeaderGatewayFilterFactory

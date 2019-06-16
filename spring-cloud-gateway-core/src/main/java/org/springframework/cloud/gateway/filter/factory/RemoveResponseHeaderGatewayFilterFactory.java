@@ -16,14 +16,14 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import reactor.core.publisher.Mono;
+
 import java.util.Arrays;
 import java.util.List;
 
-import reactor.core.publisher.Mono;
-
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-
 /**
+ * 删除响应头属性
  * @author Spencer Gibb
  */
 public class RemoveResponseHeaderGatewayFilterFactory

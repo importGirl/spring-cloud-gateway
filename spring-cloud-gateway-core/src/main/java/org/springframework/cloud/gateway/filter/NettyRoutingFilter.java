@@ -16,19 +16,10 @@
 
 package org.springframework.cloud.gateway.filter;
 
-import java.net.URI;
-import java.util.List;
-
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.netty.NettyPipeline;
-import reactor.netty.http.client.HttpClient;
-import reactor.netty.http.client.HttpClientResponse;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.gateway.config.HttpClientProperties;
 import org.springframework.cloud.gateway.filter.headers.HttpHeadersFilter;
@@ -44,18 +35,20 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.netty.NettyPipeline;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientResponse;
+
+import java.net.URI;
+import java.util.List;
 
 import static org.springframework.cloud.gateway.filter.headers.HttpHeadersFilter.filterRequest;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.CLIENT_RESPONSE_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.CLIENT_RESPONSE_CONN_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.CLIENT_RESPONSE_HEADER_NAMES;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.ORIGINAL_RESPONSE_CONTENT_TYPE_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.PRESERVE_HOST_HEADER_ATTRIBUTE;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.isAlreadyRouted;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setAlreadyRouted;
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*;
 
 /**
+ * 路由网关过滤器； 基于netty 实现 httpclient 请求后端服务
  * @author Spencer Gibb
  * @author Biju Kunjummen
  */
@@ -63,6 +56,7 @@ public class NettyRoutingFilter implements GlobalFilter, Ordered {
 
 	private static final Log log = LogFactory.getLog(NettyRoutingFilter.class);
 
+	/** 基于netty 的http客户端 */
 	private final HttpClient httpClient;
 
 	private final ObjectProvider<List<HttpHeadersFilter>> headersFiltersProvider;
@@ -95,32 +89,43 @@ public class NettyRoutingFilter implements GlobalFilter, Ordered {
 	@Override
 	@SuppressWarnings("Duplicates")
 	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+		// 获得 request Url
 		URI requestUrl = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
 
+		// 判断是否能够处理
 		String scheme = requestUrl.getScheme();
 		if (isAlreadyRouted(exchange)
 				|| (!"http".equals(scheme) && !"https".equals(scheme))) {
 			return chain.filter(exchange);
 		}
+
+		// 设置已经路由
 		setAlreadyRouted(exchange);
 
+		// 获得请求
 		ServerHttpRequest request = exchange.getRequest();
 
+		// request method
 		final HttpMethod method = HttpMethod.valueOf(request.getMethodValue());
 		final String url = requestUrl.toString();
 
+		// request header
 		HttpHeaders filtered = filterRequest(getHeadersFilters(), exchange);
 
 		final DefaultHttpHeaders httpHeaders = new DefaultHttpHeaders();
 		filtered.forEach(httpHeaders::set);
 
+		// 保存
 		boolean preserveHost = exchange
 				.getAttributeOrDefault(PRESERVE_HOST_HEADER_ATTRIBUTE, false);
 
+		// 执行请求
 		Flux<HttpClientResponse> responseFlux = this.httpClient.request(method).uri(url)
 				.send((req, nettyOutbound) -> {
+					// 请求头
 					req.headers(httpHeaders);
 
+					// 请求头属性
 					if (preserveHost) {
 						String host = request.getHeaders().getFirst(HttpHeaders.HOST);
 						req.header(HttpHeaders.HOST, host);
@@ -140,22 +145,27 @@ public class NettyRoutingFilter implements GlobalFilter, Ordered {
 					// Defer committing the response until all route filters have run
 					// Put client response as ServerWebExchange attribute and write
 					// response later NettyWriteResponseFilter
+					// 设置 gatewayClientResponse， connection
 					exchange.getAttributes().put(CLIENT_RESPONSE_ATTR, res);
 					exchange.getAttributes().put(CLIENT_RESPONSE_CONN_ATTR, connection);
 
+					//
 					ServerHttpResponse response = exchange.getResponse();
 					// put headers and status so filters can modify the response
 					HttpHeaders headers = new HttpHeaders();
 
+					// 获取请求头
 					res.responseHeaders().forEach(
 							entry -> headers.add(entry.getKey(), entry.getValue()));
 
+					// content-type
 					String contentTypeValue = headers.getFirst(HttpHeaders.CONTENT_TYPE);
 					if (StringUtils.hasLength(contentTypeValue)) {
 						exchange.getAttributes().put(ORIGINAL_RESPONSE_CONTENT_TYPE_ATTR,
 								contentTypeValue);
 					}
 
+					// http 响应码
 					HttpStatus status = HttpStatus.resolve(res.status().code());
 					if (status != null) {
 						response.setStatusCode(status);
@@ -175,9 +185,11 @@ public class NettyRoutingFilter implements GlobalFilter, Ordered {
 
 					// make sure headers filters run after setting status so it is
 					// available in response
+					// 请求头过滤器
 					HttpHeaders filteredResponseHeaders = HttpHeadersFilter.filter(
 							getHeadersFilters(), headers, exchange, Type.RESPONSE);
 
+					//
 					if (!filteredResponseHeaders
 							.containsKey(HttpHeaders.TRANSFER_ENCODING)
 							&& filteredResponseHeaders
@@ -197,6 +209,7 @@ public class NettyRoutingFilter implements GlobalFilter, Ordered {
 					return Mono.just(res);
 				});
 
+		// 请求超时配置
 		if (properties.getResponseTimeout() != null) {
 			responseFlux = responseFlux.timeout(properties.getResponseTimeout(),
 					Mono.error(new TimeoutException("Response took longer than timeout: "

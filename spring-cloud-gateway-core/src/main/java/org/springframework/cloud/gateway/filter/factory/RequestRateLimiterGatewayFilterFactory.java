@@ -16,8 +16,6 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.util.Map;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
@@ -27,9 +25,12 @@ import org.springframework.cloud.gateway.support.HttpStatusHolder;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.http.HttpStatus;
 
+import java.util.Map;
+
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setResponseStatus;
 
 /**
+ * 限流相关
  * User Request Rate Limiter filter. See https://stripe.com/blog/rate-limiters and
  */
 @ConfigurationProperties("spring.cloud.gateway.filter.request-rate-limiter")
@@ -43,9 +44,9 @@ public class RequestRateLimiterGatewayFilterFactory extends
 
 	private static final String EMPTY_KEY = "____EMPTY_KEY__";
 
-	private final RateLimiter defaultRateLimiter;
+	private final RateLimiter defaultRateLimiter; // 限流器：默认 redisRateLimiter
 
-	private final KeyResolver defaultKeyResolver;
+	private final KeyResolver defaultKeyResolver; // 限流键解析器 PrincipalNameKeyResolver
 
 	/**
 	 * Switch to deny requests if the Key Resolver returns an empty key, defaults to true.
@@ -89,38 +90,54 @@ public class RequestRateLimiterGatewayFilterFactory extends
 	@SuppressWarnings("unchecked")
 	@Override
 	public GatewayFilter apply(Config config) {
+		// 获得 限流key解析器
 		KeyResolver resolver = getOrDefault(config.keyResolver, defaultKeyResolver);
+		// 限流器
 		RateLimiter<Object> limiter = getOrDefault(config.rateLimiter,
 				defaultRateLimiter);
+		// key = null 是否拒绝处理请求
 		boolean denyEmpty = getOrDefault(config.denyEmptyKey, this.denyEmptyKey);
+
+		// 状态码
 		HttpStatusHolder emptyKeyStatus = HttpStatusHolder
 				.parse(getOrDefault(config.emptyKeyStatus, this.emptyKeyStatusCode));
 
 		return (exchange, chain) -> {
+			// 路由
 			Route route = exchange
 					.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+
 
 			return resolver.resolve(exchange).defaultIfEmpty(EMPTY_KEY).flatMap(key -> {
 				if (EMPTY_KEY.equals(key)) {
 					if (denyEmpty) {
+						// key 为空时， 设置空响应码 403
 						setResponseStatus(exchange, emptyKeyStatus);
 						return exchange.getResponse().setComplete();
 					}
 					return chain.filter(exchange);
 				}
-				return limiter.isAllowed(route.getId(), key).flatMap(response -> {
+				return
+					// 是否限流
+					limiter.isAllowed(route.getId(), key)
+							//
+							.flatMap(response -> {
 
+					// 设置响应头
 					for (Map.Entry<String, String> header : response.getHeaders()
 							.entrySet()) {
 						exchange.getResponse().getHeaders().add(header.getKey(),
 								header.getValue());
 					}
 
+					// 通过
 					if (response.isAllowed()) {
 						return chain.filter(exchange);
 					}
 
+					// 设置限流响应码
 					setResponseStatus(exchange, config.getStatusCode());
+					// 请求返回
 					return exchange.getResponse().setComplete();
 				});
 			});

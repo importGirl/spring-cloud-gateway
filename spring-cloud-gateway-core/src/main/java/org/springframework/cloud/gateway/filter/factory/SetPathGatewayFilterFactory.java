@@ -16,20 +16,19 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.web.util.UriTemplate;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.web.util.UriTemplate;
-
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.addOriginalRequestUrl;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.getUriTemplateVariables;
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*;
 
 /**
+ * 解析path设置uri（过滤掉参数）
  * @author Spencer Gibb
  */
 public class SetPathGatewayFilterFactory
@@ -57,6 +56,7 @@ public class SetPathGatewayFilterFactory
 			ServerHttpRequest req = exchange.getRequest();
 			addOriginalRequestUrl(exchange, req.getURI());
 
+			// 获得uri参数
 			Map<String, String> uriVariables = getUriTemplateVariables(exchange);
 
 			URI uri = uriTemplate.expand(uriVariables);

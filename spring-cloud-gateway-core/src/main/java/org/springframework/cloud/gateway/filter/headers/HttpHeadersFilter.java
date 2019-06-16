@@ -16,10 +16,10 @@
 
 package org.springframework.cloud.gateway.filter.headers;
 
-import java.util.List;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.server.ServerWebExchange;
+
+import java.util.List;
 
 public interface HttpHeadersFilter {
 
@@ -29,13 +29,23 @@ public interface HttpHeadersFilter {
 		return filter(filters, headers, exchange, Type.REQUEST);
 	}
 
+	/**
+	 * 处理请求头， 设置 response 的请求头
+	 * @param filters
+	 * @param input
+	 * @param exchange
+	 * @param type
+	 * @return
+	 */
 	static HttpHeaders filter(List<HttpHeadersFilter> filters, HttpHeaders input,
 			ServerWebExchange exchange, Type type) {
 		HttpHeaders response = input;
 		if (filters != null) {
 			HttpHeaders reduce = filters.stream()
-					.filter(headersFilter -> headersFilter.supports(type)).reduce(input,
-							(headers, filter) -> filter.filter(headers, exchange),
+					// 过滤请求类型
+					.filter(headersFilter -> headersFilter.supports(type))
+					// 执行过滤器， 合并请求头
+					.reduce(input, (headers, filter) -> filter.filter(headers, exchange),
 							(httpHeaders, httpHeaders2) -> {
 								httpHeaders.addAll(httpHeaders2);
 								return httpHeaders;

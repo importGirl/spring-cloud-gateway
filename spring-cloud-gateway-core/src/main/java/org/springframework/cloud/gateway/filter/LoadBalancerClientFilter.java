@@ -16,25 +16,26 @@
 
 package org.springframework.cloud.gateway.filter;
 
-import java.net.URI;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Mono;
-
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.cloud.gateway.config.LoadBalancerProperties;
 import org.springframework.cloud.gateway.support.NotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_SCHEME_PREFIX_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.addOriginalRequestUrl;
+import java.net.URI;
+import java.util.Map;
+
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*;
 
 /**
+ *
+ * 	负载均衡
+ * 	lb://sample:9090/user/hello -> http://192.168.1.10:9091/user/hello
+ *
  * @author Spencer Gibb
  * @author Tim Ysewyn
  */
@@ -62,10 +63,20 @@ public class LoadBalancerClientFilter implements GlobalFilter, Ordered {
 		return LOAD_BALANCER_CLIENT_FILTER_ORDER;
 	}
 
+	/**
+	 * 负载均衡
+	 * lb://sample:9090/user/hello -> http://192.168.1.10:9091/user/hello
+	 *
+	 * @param exchange the current server exchange
+	 * @param chain provides a way to delegate to the next filter
+	 * @return
+	 */
 	@Override
 	@SuppressWarnings("Duplicates")
 	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+		// 获得请求url
 		URI url = exchange.getAttribute(GATEWAY_REQUEST_URL_ATTR);
+		// 获得负载均衡前缀; 只处理 lb:// 前缀
 		String schemePrefix = exchange.getAttribute(GATEWAY_SCHEME_PREFIX_ATTR);
 		if (url == null
 				|| (!"lb".equals(url.getScheme()) && !"lb".equals(schemePrefix))) {
@@ -76,6 +87,7 @@ public class LoadBalancerClientFilter implements GlobalFilter, Ordered {
 
 		log.trace("LoadBalancerClientFilter url before: " + url);
 
+		// 获得服务实例， 实现负载均衡
 		final ServiceInstance instance = choose(exchange);
 
 		if (instance == null) {
@@ -92,10 +104,12 @@ public class LoadBalancerClientFilter implements GlobalFilter, Ordered {
 			overrideScheme = url.getScheme();
 		}
 
+		// 创建request uri；
 		URI requestUrl = loadBalancer.reconstructURI(
 				new DelegatingServiceInstance(instance, overrideScheme), uri);
 
 		log.trace("LoadBalancerClientFilter url chosen: " + requestUrl);
+		// 设置回去
 		exchange.getAttributes().put(GATEWAY_REQUEST_URL_ATTR, requestUrl);
 		return chain.filter(exchange);
 	}

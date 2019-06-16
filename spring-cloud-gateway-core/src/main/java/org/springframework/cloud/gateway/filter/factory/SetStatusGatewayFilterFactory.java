@@ -16,17 +16,17 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.util.Arrays;
-import java.util.List;
-
-import reactor.core.publisher.Mono;
-
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.support.HttpStatusHolder;
+import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setResponseStatus;
 
 /**
+ * 设置响应状态
  * @author Spencer Gibb
  */
 public class SetStatusGatewayFilterFactory

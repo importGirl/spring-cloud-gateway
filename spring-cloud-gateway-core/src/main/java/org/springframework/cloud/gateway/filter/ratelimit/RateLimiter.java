@@ -16,13 +16,12 @@
 
 package org.springframework.cloud.gateway.filter.ratelimit;
 
-import java.util.Collections;
-import java.util.Map;
-
-import reactor.core.publisher.Mono;
-
 import org.springframework.cloud.gateway.support.StatefulConfigurable;
 import org.springframework.util.Assert;
+import reactor.core.publisher.Mono;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * @author Spencer Gibb
@@ -33,8 +32,10 @@ public interface RateLimiter<C> extends StatefulConfigurable<C> {
 
 	class Response {
 
+		// 是否允许访问
 		private final boolean allowed;
 
+		// 令牌桶剩余数量
 		private final long tokensRemaining;
 
 		private final Map<String, String> headers;

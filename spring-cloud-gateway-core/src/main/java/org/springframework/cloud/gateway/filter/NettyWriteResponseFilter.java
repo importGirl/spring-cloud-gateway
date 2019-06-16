@@ -16,14 +16,8 @@
 
 package org.springframework.cloud.gateway.filter;
 
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.netty.Connection;
-
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
@@ -31,10 +25,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.netty.Connection;
+
+import java.util.List;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.CLIENT_RESPONSE_CONN_ATTR;
 
 /**
+ * 基于netty 将后端http服务响应写回客户端
  * @author Spencer Gibb
  */
 public class NettyWriteResponseFilter implements GlobalFilter, Ordered {
@@ -63,8 +63,11 @@ public class NettyWriteResponseFilter implements GlobalFilter, Ordered {
 		// until the NettyRoutingFilter is run
 		// @formatter:off
 		return chain.filter(exchange)
+				// 报错，关闭连接
 				.doOnError(throwable -> cleanup(exchange))
+				//
 				.then(Mono.defer(() -> {
+					// 获得连接 con
 					Connection connection = exchange.getAttribute(CLIENT_RESPONSE_CONN_ATTR);
 
 					if (connection == null) {
@@ -75,6 +78,7 @@ public class NettyWriteResponseFilter implements GlobalFilter, Ordered {
 								+ connection.channel().id().asShortText() + ", outbound: "
 								+ exchange.getLogPrefix());
 					}
+					// 返回对象
 					ServerHttpResponse response = exchange.getResponse();
 
 					// TODO: what if it's not netty
@@ -82,6 +86,7 @@ public class NettyWriteResponseFilter implements GlobalFilter, Ordered {
 							.bufferFactory();
 
 					// TODO: needed?
+					// 类型转换： response.writewith()；参数类型
 					final Flux<NettyDataBuffer> body = connection
 							.inbound()
 							.receive()
@@ -90,6 +95,7 @@ public class NettyWriteResponseFilter implements GlobalFilter, Ordered {
 
 					MediaType contentType = null;
 					try {
+						// 请求体
 						contentType = response.getHeaders().getContentType();
 					}
 					catch (Exception e) {
@@ -97,6 +103,7 @@ public class NettyWriteResponseFilter implements GlobalFilter, Ordered {
 							log.trace("invalid media type", e);
 						}
 					}
+					// 返回
 					return (isStreamingMediaType(contentType)
 							? response.writeAndFlushWith(body.map(Flux::just))
 							: response.writeWith(body));

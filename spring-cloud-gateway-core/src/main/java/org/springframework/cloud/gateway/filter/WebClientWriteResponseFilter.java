@@ -59,6 +59,7 @@ public class WebClientWriteResponseFilter implements GlobalFilter, Ordered {
 					log.trace("WebClientWriteResponseFilter start");
 					ServerHttpResponse response = exchange.getResponse();
 
+					// 响应
 					return response
 							.writeWith(
 									clientResponse.body(BodyExtractors.toDataBuffers()))

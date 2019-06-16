@@ -21,43 +21,51 @@ import org.springframework.http.HttpHeaders;
 
 /**
  * https://blog.appcanary.com/2017/http-security-headers.html.
- *
+ * 添加响应source 相关的 header
  * @author Spencer Gibb
  */
 public class SecureHeadersGatewayFilterFactory extends AbstractGatewayFilterFactory {
 
 	/**
 	 * Xss-Protection header name.
+	 * 过滤请求的 xss 脚本
 	 */
 	public static final String X_XSS_PROTECTION_HEADER = "X-Xss-Protection";
 
 	/**
 	 * Strict transport security header name.
+	 * https 跳转
 	 */
 	public static final String STRICT_TRANSPORT_SECURITY_HEADER = "Strict-Transport-Security";
 
 	/**
 	 * Frame options header name.
+	 * iframe 相关
 	 */
 	public static final String X_FRAME_OPTIONS_HEADER = "X-Frame-Options";
 
 	/**
 	 * Content-Type Options header name.
+	 * 设置请求体类型 mime
 	 */
 	public static final String X_CONTENT_TYPE_OPTIONS_HEADER = "X-Content-Type-Options";
 
 	/**
 	 * Referrer Policy header name.
+	 * 指定浏览器设置一个referer头
+	 *
 	 */
 	public static final String REFERRER_POLICY_HEADER = "Referrer-Policy";
 
 	/**
 	 * Content-Security Policy header name.
+	 * 比X_XSS_PROTECTION_HEADER 更高级； 阻止涉及在服务器上存储恶意脚本或加载带有恶意脚本的外部资源的xss攻击
 	 */
 	public static final String CONTENT_SECURITY_POLICY_HEADER = "Content-Security-Policy";
 
 	/**
 	 * Download Options header name.
+	 *
 	 */
 	public static final String X_DOWNLOAD_OPTIONS_HEADER = "X-Download-Options";
 

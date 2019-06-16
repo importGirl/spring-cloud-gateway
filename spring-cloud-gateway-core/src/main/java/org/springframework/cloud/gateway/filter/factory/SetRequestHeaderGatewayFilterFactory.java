@@ -20,6 +20,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
 /**
+ * 设置请求 header 属性
  * @author Spencer Gibb
  */
 public class SetRequestHeaderGatewayFilterFactory

@@ -19,6 +19,7 @@ package org.springframework.cloud.gateway.filter.factory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 
 /**
+ * 响应添加 header 参数
  * @author Spencer Gibb
  */
 public class AddResponseHeaderGatewayFilterFactory

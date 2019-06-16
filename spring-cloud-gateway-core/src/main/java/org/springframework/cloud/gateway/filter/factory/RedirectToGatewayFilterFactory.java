@@ -16,22 +16,22 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-
-import reactor.core.publisher.Mono;
-
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.support.HttpStatusHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.Assert;
+import reactor.core.publisher.Mono;
+
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setResponseStatus;
 
 /**
+ * 将响应重定向到指定url, 并设置响应状态码为指定 status, status 必须是 3XX 重定向状态吗
  * @author Spencer Gibb
  */
 public class RedirectToGatewayFilterFactory

@@ -16,20 +16,18 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ALREADY_PREFIXED_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.addOriginalRequestUrl;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*;
 
 /**
+ * uri添加前缀
  * @author Spencer Gibb
  */
 public class PrefixPathGatewayFilterFactory
@@ -65,6 +63,7 @@ public class PrefixPathGatewayFilterFactory
 
 			ServerHttpRequest req = exchange.getRequest();
 			addOriginalRequestUrl(exchange, req.getURI());
+			// uri 添加前缀
 			String newPath = config.prefix + req.getURI().getRawPath();
 
 			ServerHttpRequest request = req.mutate().path(newPath).build();

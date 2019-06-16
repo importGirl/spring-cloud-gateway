@@ -16,21 +16,11 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.net.URI;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.HystrixObservableCommand.Setter;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import reactor.core.publisher.Mono;
-import rx.Observable;
-import rx.RxReactiveStreams;
-import rx.Subscription;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -44,17 +34,24 @@ import org.springframework.web.reactive.DispatcherHandler;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
+import rx.Observable;
+import rx.RxReactiveStreams;
+import rx.Subscription;
+
+import java.net.URI;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.HYSTRIX_EXECUTION_EXCEPTION_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.containsEncodedParts;
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*;
 
 /**
  * Depends on `spring-cloud-starter-netflix-hystrix`,
  * {@see https://cloud.spring.io/spring-cloud-netflix/}.
- *
+ * 熔断相关
  * @author Spencer Gibb
  * @author Michele Mancioppi
  * @author Olga Maciaszek-Sharma
@@ -107,20 +104,25 @@ public class HystrixGatewayFilterFactory
 			HystrixCommandGroupKey groupKey = HystrixCommandGroupKey.Factory
 					.asKey(getClass().getSimpleName());
 			HystrixCommandKey commandKey = HystrixCommandKey.Factory.asKey(config.name);
-
+			//设置 groupKey,cmdKey
 			config.setter = Setter.withGroupKey(groupKey).andCommandKey(commandKey);
 		}
 
 		return (exchange, chain) -> {
+			// 创建 RouteHystrixCommand
 			RouteHystrixCommand command = new RouteHystrixCommand(config.setter,
 					config.fallbackUri, exchange, chain);
 
 			return Mono.create(s -> {
+				// gatewayfilter 基于 reator， hystrix 基于 rxJava， 需要订阅适配
 				Subscription sub = command.toObservable().subscribe(s::success, s::error,
 						s::success);
 				s.onCancel(sub::unsubscribe);
-			}).onErrorResume((Function<Throwable, Mono<Void>>) throwable -> {
+			})
+			// 发生异常调用该方法
+			.onErrorResume((Function<Throwable, Mono<Void>>) throwable -> {
 				if (throwable instanceof HystrixRuntimeException) {
+					// 失败类型
 					HystrixRuntimeException e = (HystrixRuntimeException) throwable;
 					HystrixRuntimeException.FailureType failureType = e.getFailureType();
 

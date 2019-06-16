@@ -45,6 +45,10 @@ import java.util.List;
 @ConditionalOnClass({ RedisTemplate.class, DispatcherHandler.class })
 class GatewayRedisAutoConfiguration {
 
+	/**
+	 * 令牌桶算法 lua脚本
+	 * @return
+	 */
 	@Bean
 	@SuppressWarnings("unchecked")
 	public RedisScript redisRequestRateLimiterScript() {

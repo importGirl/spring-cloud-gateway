@@ -16,22 +16,9 @@
 
 package org.springframework.cloud.gateway.filter.ratelimit;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.validation.constraints.Min;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import org.springframework.beans.BeansException;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator;
@@ -41,6 +28,13 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import javax.validation.constraints.Min;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * See https://stripe.com/blog/rate-limiters and
@@ -204,36 +198,48 @@ public class RedisRateLimiter extends AbstractRateLimiter<RedisRateLimiter.Confi
 	@Override
 	@SuppressWarnings("unchecked")
 	public Mono<Response> isAllowed(String routeId, String id) {
+		// 限流器是否初始化
 		if (!this.initialized.get()) {
 			throw new IllegalStateException("RedisRateLimiter is not initialized");
 		}
 
+		// 加载配置
 		Config routeConfig = loadConfiguration(routeId);
 
 		// How many requests per second do you want a user to be allowed to do?
-		int replenishRate = routeConfig.getReplenishRate();
+		int replenishRate = routeConfig.getReplenishRate(); // 每秒请求次数
 
 		// How much bursting do you want to allow?
-		int burstCapacity = routeConfig.getBurstCapacity();
+		int burstCapacity = routeConfig.getBurstCapacity(); //
 
 		try {
+			// 获得 key
 			List<String> keys = getKeys(id);
 
 			// The arguments to the LUA script. time() returns unixtime in seconds.
+			// 组合lua脚本参数
 			List<String> scriptArgs = Arrays.asList(replenishRate + "",
 					burstCapacity + "", Instant.now().getEpochSecond() + "", "1");
 			// allowed, tokens_left = redis.eval(SCRIPT, keys, args)
 			Flux<List<Long>> flux = this.redisTemplate.execute(this.script, keys,
 					scriptArgs);
 			// .log("redisratelimiter", Level.FINER);
-			return flux.onErrorResume(throwable -> Flux.just(Arrays.asList(1L, -1L)))
+
+			return flux
+					// 脚本发生异常，忽略异常， 即认为获取令牌成功， redis发生故障时， 不希望限流器对 redis 强依赖
+					.onErrorResume(throwable -> Flux.just(Arrays.asList(1L, -1L)))
+					// flux -> mono
 					.reduce(new ArrayList<Long>(), (longs, l) -> {
 						longs.addAll(l);
 						return longs;
-					}).map(results -> {
+					})
+					// Mono<list<Long>> -> Mono<Response>
+					.map(results -> {
+						// 是否成功
 						boolean allowed = results.get(0) == 1L;
 						Long tokensLeft = results.get(1);
 
+						// 设置响应
 						Response response = new Response(allowed,
 								getHeaders(routeConfig, tokensLeft));
 
@@ -243,6 +249,7 @@ public class RedisRateLimiter extends AbstractRateLimiter<RedisRateLimiter.Confi
 						return response;
 					});
 		}
+		// 忽略异常， 如果发生异常也认为获取令牌成功
 		catch (Exception e) {
 			/*
 			 * We don't want a hard dependency on Redis to allow traffic. Make sure to set
@@ -251,8 +258,10 @@ public class RedisRateLimiter extends AbstractRateLimiter<RedisRateLimiter.Confi
 			 */
 			log.error("Error determining if user allowed from redis", e);
 		}
+		// 允许通过
 		return Mono.just(new Response(true, getHeaders(routeConfig, -1L)));
 	}
+
 
 	/* for testing */ Config loadConfiguration(String routeId) {
 		Config routeConfig = getConfig().getOrDefault(routeId, defaultConfig);
@@ -267,6 +276,7 @@ public class RedisRateLimiter extends AbstractRateLimiter<RedisRateLimiter.Confi
 		}
 		return routeConfig;
 	}
+
 
 	@NotNull
 	public Map<String, String> getHeaders(Config config, Long tokensLeft) {

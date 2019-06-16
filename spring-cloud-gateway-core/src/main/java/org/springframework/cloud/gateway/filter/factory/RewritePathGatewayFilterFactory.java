@@ -16,17 +16,18 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.addOriginalRequestUrl;
 
 /**
  * @author Spencer Gibb
+ * 根据配置的重写请求 path
  */
 public class RewritePathGatewayFilterFactory
 		extends AbstractGatewayFilterFactory<RewritePathGatewayFilterFactory.Config> {
@@ -52,13 +53,18 @@ public class RewritePathGatewayFilterFactory
 
 	@Override
 	public GatewayFilter apply(Config config) {
+		// 去掉转义字符 $\\ 代替 $, 避免和yaml 语法冲突
 		String replacement = config.replacement.replace("$\\", "$");
 		return (exchange, chain) -> {
 			ServerHttpRequest req = exchange.getRequest();
+			// 添加源uri
 			addOriginalRequestUrl(exchange, req.getURI());
+
 			String path = req.getURI().getRawPath();
+			// 替换参数
 			String newPath = path.replaceAll(config.regexp, replacement);
 
+			// 构建新的请求
 			ServerHttpRequest request = req.mutate().path(newPath).build();
 
 			exchange.getAttributes().put(GATEWAY_REQUEST_URL_ATTR, request.getURI());

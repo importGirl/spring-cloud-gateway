@@ -20,6 +20,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
 /**
+ * 添加指定请求header 为质地感值
  * @author Spencer Gibb
  */
 public class AddRequestHeaderGatewayFilterFactory
@@ -28,9 +29,10 @@ public class AddRequestHeaderGatewayFilterFactory
 	@Override
 	public GatewayFilter apply(NameValueConfig config) {
 		return (exchange, chain) -> {
+			// 创建新的 ServerHttpRequest
 			ServerHttpRequest request = exchange.getRequest().mutate()
 					.header(config.getName(), config.getValue()).build();
-
+			// 提交过滤器继续过滤
 			return chain.filter(exchange.mutate().request(request).build());
 		};
 	}

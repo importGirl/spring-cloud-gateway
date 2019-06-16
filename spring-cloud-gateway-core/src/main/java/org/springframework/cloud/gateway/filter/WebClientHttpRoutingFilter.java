@@ -16,11 +16,6 @@
 
 package org.springframework.cloud.gateway.filter;
 
-import java.net.URI;
-import java.util.List;
-
-import reactor.core.publisher.Mono;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.gateway.filter.headers.HttpHeadersFilter;
 import org.springframework.core.Ordered;
@@ -33,15 +28,16 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+import java.net.URI;
+import java.util.List;
 
 import static org.springframework.cloud.gateway.filter.headers.HttpHeadersFilter.filterRequest;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.CLIENT_RESPONSE_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.PRESERVE_HOST_HEADER_ATTRIBUTE;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.isAlreadyRouted;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setAlreadyRouted;
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.*;
 
 /**
+ * http://、 https:// 路由网关过滤器
  * @author Spencer Gibb
  */
 public class WebClientHttpRoutingFilter implements GlobalFilter, Ordered {
@@ -73,24 +69,33 @@ public class WebClientHttpRoutingFilter implements GlobalFilter, Ordered {
 
 	@Override
 	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+		// 请求url
 		URI requestUrl = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
 
+		// path协议
 		String scheme = requestUrl.getScheme();
+		// 是否已经过滤 || http|| https
 		if (isAlreadyRouted(exchange)
 				|| (!"http".equals(scheme) && !"https".equals(scheme))) {
 			return chain.filter(exchange);
 		}
+		// 设置已经过滤
 		setAlreadyRouted(exchange);
 
+		// 请求
 		ServerHttpRequest request = exchange.getRequest();
 
+		// mthod
 		HttpMethod method = request.getMethod();
 
+		// 处理请求头
 		HttpHeaders filteredHeaders = filterRequest(getHeadersFilters(), exchange);
 
+		//是否保存 header:host
 		boolean preserveHost = exchange
 				.getAttributeOrDefault(PRESERVE_HOST_HEADER_ATTRIBUTE, false);
 
+		// 构建请求体
 		RequestBodySpec bodySpec = this.webClient.method(method).uri(requestUrl)
 				.headers(httpHeaders -> {
 					httpHeaders.addAll(filteredHeaders);
@@ -101,6 +106,7 @@ public class WebClientHttpRoutingFilter implements GlobalFilter, Ordered {
 				});
 
 		RequestHeadersSpec<?> headersSpec;
+
 		if (requiresBody(method)) {
 			headersSpec = bodySpec.body(BodyInserters.fromDataBuffers(request.getBody()));
 		}
@@ -108,8 +114,10 @@ public class WebClientHttpRoutingFilter implements GlobalFilter, Ordered {
 			headersSpec = bodySpec;
 		}
 
+		// 执行请求
 		return headersSpec.exchange()
 				// .log("webClient route")
+				// 处理后端响应
 				.flatMap(res -> {
 					ServerHttpResponse response = exchange.getResponse();
 					response.getHeaders().putAll(res.headers().asHttpHeaders());
