@@ -16,15 +16,7 @@
 
 package org.springframework.cloud.gateway.filter.headers;
 
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.jetbrains.annotations.Nullable;
-
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -34,6 +26,26 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 配置：
+ * 	Forwarded: by=<identifier>; for=<identifier>; host=<host>; proto=<http|https>
+ *	by=<identifier> 该请求进入到代理服务器的接口。
+ *  for=<identifier> 发起请求的客户端以及代理链中的一系列的代理服务器。
+ *  host=<host> 代理接收到的 Host首部的信息。
+ *  proto=<http|https> 表示发起请求时采用的何种协议（通常是 "http" 或者 "https"）。
+ *
+ * 作用：
+ * 	RFC 7239(June 2014)提出了一个标准化的Forwarded头部，来携带反向代理的基本信息，用于替代X-Forwarded系列及X-Real-IP等非标准化的头部。
+ * 	而ForwardedHeadersFilter便是提供了Forwarded头部的转发支持，目前经过gateway的请求会带上一个转发信息的Forwarded(host,proto,for)。
+ *
+ */
 public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 
 	/**
@@ -98,10 +110,12 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 		HttpHeaders updated = new HttpHeaders();
 
 		// copy all headers except Forwarded
+		// 筛选 Forwarded 请求头
 		original.entrySet().stream().filter(
 				entry -> !entry.getKey().toLowerCase().equalsIgnoreCase(FORWARDED_HEADER))
 				.forEach(entry -> updated.addAll(entry.getKey(), entry.getValue()));
 
+		// Forwarded
 		List<Forwarded> forwardeds = parse(original.get(FORWARDED_HEADER));
 
 		for (Forwarded f : forwardeds) {

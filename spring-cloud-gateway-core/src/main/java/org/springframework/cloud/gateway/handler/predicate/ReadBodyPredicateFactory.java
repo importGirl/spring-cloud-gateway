@@ -16,15 +16,8 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import org.springframework.cloud.gateway.handler.AsyncPredicate;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
@@ -34,10 +27,17 @@ import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.web.reactive.function.server.HandlerStrategies;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 import static org.springframework.cloud.gateway.filter.AdaptCachedBodyGlobalFilter.CACHED_REQUEST_BODY_KEY;
 
 /**
+ *
  * Predicate that reads the body and applies a user provided predicate to run on the body.
  * The body is cached in memory so that possible subsequent calls to the predicate do not
  * need to deserialize again.

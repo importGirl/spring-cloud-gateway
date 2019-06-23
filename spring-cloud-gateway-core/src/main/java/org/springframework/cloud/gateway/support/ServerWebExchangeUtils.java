@@ -16,22 +16,21 @@
 
 package org.springframework.cloud.gateway.support;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.core.publisher.Mono;
-
 import org.springframework.cloud.gateway.handler.AsyncPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.AbstractServerHttpResponse;
 import org.springframework.util.Assert;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * @author Spencer Gibb
@@ -219,9 +218,15 @@ public final class ServerWebExchangeUtils {
 		uris.add(url);
 	}
 
+	/**
+	 * 基于 Reactor.Mono 实现异步
+	 * @param predicate
+	 * @return
+	 */
 	public static AsyncPredicate<ServerWebExchange> toAsyncPredicate(
 			Predicate<? super ServerWebExchange> predicate) {
 		Assert.notNull(predicate, "predicate must not be null");
+		// 基于 Reactor.Mono 实现异步
 		return t -> Mono.just(predicate.test(t));
 	}
 

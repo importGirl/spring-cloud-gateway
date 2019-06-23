@@ -27,6 +27,7 @@ import java.util.Objects;
 import static org.springframework.util.StringUtils.tokenizeToStringArray;
 
 /**
+ * 过滤器定义：name、args 属性
  * @author Spencer Gibb
  */
 @Validated

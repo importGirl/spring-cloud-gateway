@@ -61,7 +61,9 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 		setCorsConfigurations(globalCorsProperties.getCorsConfigurations());
 	}
 
+	/** managementPort 与 serverPort 是否相同 */
 	private ManagementPortType getManagementPortType(Environment environment) {
+		// 服务器端口
 		Integer serverPort = getPortProperty(environment, "server.");
 		if (this.managementPort != null && this.managementPort < 0) {
 			return DISABLED;
@@ -84,6 +86,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 	@Override
 	protected Mono<?> getHandlerInternal(ServerWebExchange exchange) {
 		// don't handle requests on management port if set and different than server port
+		// 如果serverPort 和 managementPort 不同， 直接返回
 		if (this.managementPortType == DIFFERENT && this.managementPort != null
 				&& exchange.getRequest().getURI().getPort() == this.managementPort) {
 			return Mono.empty();
@@ -92,7 +95,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 		exchange.getAttributes().put(GATEWAY_HANDLER_MAPPER_ATTR, getSimpleName());
 
 
-		return 	// 获取路由数组
+		return 	// 获取路由(单个)
 				lookupRoute(exchange)
 				// .log("route-predicate-handler-mapping", Level.FINER) //name this
 				.flatMap((Function<Route, Mono<?>>) r -> {
@@ -105,9 +108,11 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 
 					// 设置 ServerWebExchangeUtils.gatewayRoute 属性
 					exchange.getAttributes().put(GATEWAY_ROUTE_ATTR, r);
-					// 构建 匹配的FilteringWebHandler Mono对象
+					// 设置全局过滤器链： globalFilterChain
 					return Mono.just(webHandler);
-				}).switchIfEmpty(Mono.empty().then(Mono.fromRunnable(() -> {
+				})
+				// 如果匹配不到，返回 Mono.empty();
+				.switchIfEmpty(Mono.empty().then(Mono.fromRunnable(() -> {
 					exchange.getAttributes().remove(GATEWAY_PREDICATE_ROUTE_ATTR);
 					if (logger.isTraceEnabled()) {
 						logger.trace("No RouteDefinition found for ["
@@ -152,7 +157,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 						.filterWhen(r -> {
 					// add the current route we are testing
 					exchange.getAttributes().put(GATEWAY_PREDICATE_ROUTE_ATTR, r.getId());
-					// 找到 Route 的 Predicate ， 匹配对应的条件
+					//  匹配Predicate
 					return r.getPredicate().apply(exchange);
 
 				})
@@ -165,6 +170,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 				// .defaultIfEmpty() put a static Route not found
 				// or .switchIfEmpty()
 				// .switchIfEmpty(Mono.<Route>empty().log("noroute"))
+				// 只取第一个元素 findFirst(); 每次请求只会对应一个 Route
 				.next()
 				// TODO: error handling
 				.map(route -> {

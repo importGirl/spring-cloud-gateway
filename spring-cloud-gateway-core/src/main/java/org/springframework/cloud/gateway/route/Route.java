@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.toAsyncPredicate;
 
 /**
- * 表示一个具体的路由信息载体; uri, id, predicate, gatewayfilters, order
+ * 路由对象： 表示一个具体的路由信息载体; uri, id, predicate, gatewayfilters, order
  *
  * @author Spencer Gibb
  */
@@ -62,6 +62,7 @@ public class Route implements Ordered {
 		return new Builder();
 	}
 
+	/** 构建基本都 Route */
 	public static Builder builder(RouteDefinition routeDefinition) {
 		return new Builder().id(routeDefinition.getId()).uri(routeDefinition.getUri())
 				.order(routeDefinition.getOrder());
@@ -71,6 +72,7 @@ public class Route implements Ordered {
 		return new AsyncBuilder();
 	}
 
+	/** 构建基本的 异步Route */
 	public static AsyncBuilder async(RouteDefinition routeDefinition) {
 		return new AsyncBuilder().id(routeDefinition.getId())
 				.uri(routeDefinition.getUri()).order(routeDefinition.getOrder());

@@ -16,16 +16,16 @@
 
 package org.springframework.cloud.gateway.filter.headers;
 
-import java.net.URI;
-import java.util.LinkedHashSet;
-import java.util.List;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
+
+import java.net.URI;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
@@ -279,6 +279,13 @@ public class XForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 		}
 	}
 
+	/**
+	 * 如果是append，则逗号分隔写入headers，如果不是则是采取set操作。
+	 * @param headers
+	 * @param name
+	 * @param value
+	 * @param append
+	 */
 	private void write(HttpHeaders headers, String name, String value, boolean append) {
 		if (append) {
 			headers.add(name, value);

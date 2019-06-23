@@ -26,6 +26,7 @@ import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
+import org.springframework.web.reactive.DispatcherHandler;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebHandler;
 import reactor.core.publisher.Mono;
@@ -37,6 +38,10 @@ import java.util.stream.Collectors;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR;
 
 /**
+ *
+ * 该拦截器中handle()中执行 globalFilterChain(全局过滤器链)；
+ * 该handle() 方法最后交给 {@link DispatcherHandler#handle(ServerWebExchange)} 执行
+ *
  * WebHandler that delegates to a chain of {@link GlobalFilter} instances and
  * {@link GatewayFilterFactory} instances then to the target {@link WebHandler}.
  *
@@ -52,6 +57,7 @@ public class FilteringWebHandler implements WebHandler {
 	private final List<GatewayFilter> globalFilters;
 
 	public FilteringWebHandler(List<GlobalFilter> globalFilters) {
+		// GlobalFilter -> GatewayFilter
 		this.globalFilters = loadFilters(globalFilters);
 	}
 
@@ -66,11 +72,11 @@ public class FilteringWebHandler implements WebHandler {
 		}).collect(Collectors.toList());
 	}
 
-	/*
+	/**
+	 * ////核心方法////
 	 * TODO: relocate @EventListener(RefreshRoutesEvent.class) void handleRefresh() {
 	 * this.combinedFiltersForRoute.clear();
 	 */
-
 	@Override
 	public Mono<Void> handle(ServerWebExchange exchange) {
 		// 获得路由
@@ -83,6 +89,7 @@ public class FilteringWebHandler implements WebHandler {
 		combined.addAll(gatewayFilters);
 		// TODO: needed or cached?
 
+		// 排序
 		AnnotationAwareOrderComparator.sort(combined);
 
 		if (logger.isDebugEnabled()) {

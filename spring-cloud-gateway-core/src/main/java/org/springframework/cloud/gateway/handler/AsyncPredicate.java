@@ -24,8 +24,8 @@ import reactor.core.publisher.Mono;
 import java.util.function.Function;
 
 /**
- * 用于条件匹配; 匹配到才能进行路由
- *
+ * ##异步## 基于 reactor包 实现都Predicate; 用于条件匹配, 匹配到才能进行路由
+ *	使用Tuple 元组：支持不同的数据类型
  * @author Ben Hale
  */
 public interface AsyncPredicate<T> extends Function<T, Publisher<Boolean>> {
@@ -33,7 +33,9 @@ public interface AsyncPredicate<T> extends Function<T, Publisher<Boolean>> {
 	default AsyncPredicate<T> and(AsyncPredicate<? super T> other) {
 		Assert.notNull(other, "other must not be null");
 
+		// zip:压缩合并 - map:转换
 		return t -> Flux.zip(apply(t), other.apply(t))
+				// Tuple元组【apply(t),other.apply(t)】 ：apply(t) - tuple.getT1(); other.apply(t) -> tuple.getT2()
 				.map(tuple -> tuple.getT1() && tuple.getT2());
 	}
 

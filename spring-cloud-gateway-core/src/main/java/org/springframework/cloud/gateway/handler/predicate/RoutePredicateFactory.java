@@ -69,6 +69,14 @@ public interface RoutePredicateFactory<C> extends ShortcutConfigurable, Configur
 
 	Predicate<ServerWebExchange> apply(C config);
 
+	/**
+	 * ### 模版方法 ###
+	 *
+	 * 转化为异步 - 基于 reactor
+	 * factory 生产 Predicate ,然后转化为 AsyncPredicate
+	 * @param config
+	 * @return
+	 */
 	default AsyncPredicate<ServerWebExchange> applyAsync(C config) {
 		return toAsyncPredicate(apply(config));
 	}

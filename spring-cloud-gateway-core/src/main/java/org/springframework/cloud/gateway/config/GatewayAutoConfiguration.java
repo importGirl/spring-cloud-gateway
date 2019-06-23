@@ -86,10 +86,10 @@ import static org.springframework.cloud.gateway.config.HttpClientProperties.Pool
 @Configuration
 @ConditionalOnProperty(name = "spring.cloud.gateway.enabled", matchIfMissing = true)
 @EnableConfigurationProperties
-@AutoConfigureBefore({ HttpHandlerAutoConfiguration.class,
-		WebFluxAutoConfiguration.class })
-@AutoConfigureAfter({ GatewayLoadBalancerClientAutoConfiguration.class,
-		GatewayClassPathWarningAutoConfiguration.class })
+@AutoConfigureBefore({HttpHandlerAutoConfiguration.class,
+		WebFluxAutoConfiguration.class})
+@AutoConfigureAfter({GatewayLoadBalancerClientAutoConfiguration.class,
+		GatewayClassPathWarningAutoConfiguration.class})
 @ConditionalOnClass(DispatcherHandler.class)
 public class GatewayAutoConfiguration {
 
@@ -104,6 +104,7 @@ public class GatewayAutoConfiguration {
 		return new RouteLocatorBuilder(context);
 	}
 
+	/** 路由配置定位器 */
 	@Bean
 	@ConditionalOnMissingBean
 	public PropertiesRouteDefinitionLocator propertiesRouteDefinitionLocator(
@@ -122,6 +123,11 @@ public class GatewayAutoConfiguration {
 		return new InMemoryRouteDefinitionRepository();
 	}
 
+	/**
+	 * 加载 组合路由定义器
+	 * @param routeDefinitionLocators
+	 * @return
+	 */
 	@Bean
 	@Primary
 	public RouteDefinitionLocator routeDefinitionLocator(
@@ -130,16 +136,30 @@ public class GatewayAutoConfiguration {
 				Flux.fromIterable(routeDefinitionLocators));
 	}
 
+	/**
+	 * 加载 路由定位器: getRoutes()
+	 * @param properties
+	 * @param GatewayFilters
+	 * @param predicates
+	 * @param routeDefinitionLocator
+	 * @param conversionService
+	 * @return
+	 */
 	@Bean
 	public RouteLocator routeDefinitionRouteLocator(GatewayProperties properties,
-			List<GatewayFilterFactory> GatewayFilters,
-			List<RoutePredicateFactory> predicates,
-			RouteDefinitionLocator routeDefinitionLocator,
-			@Qualifier("webFluxConversionService") ConversionService conversionService) {
+													List<GatewayFilterFactory> GatewayFilters,
+													List<RoutePredicateFactory> predicates,
+													RouteDefinitionLocator routeDefinitionLocator,
+													@Qualifier("webFluxConversionService") ConversionService conversionService) {
 		return new RouteDefinitionRouteLocator(routeDefinitionLocator, predicates,
 				GatewayFilters, properties, conversionService);
 	}
 
+	/**
+	 * 加载 缓存路由器
+	 * @param routeLocators
+	 * @return
+	 */
 	@Bean
 	@Primary
 	// TODO: property to disable composite?
@@ -148,13 +168,22 @@ public class GatewayAutoConfiguration {
 				new CompositeRouteLocator(Flux.fromIterable(routeLocators)));
 	}
 
+	/**
+	 * 路由监听器： 应用初始化事件，发布加载路由事件
+	 *
+	 * @param publisher
+	 * @return
+	 */
 	@Bean
 	public RouteRefreshListener routeRefreshListener(
 			ApplicationEventPublisher publisher) {
 		return new RouteRefreshListener(publisher);
 	}
 
-	/** GlobalFilter 初始化完成后初始化 */
+	/**
+	 * GlobalFilter 初始化完成后初始化
+	 * 全局过滤器执行入口
+	 * */
 	@Bean
 	public FilteringWebHandler filteringWebHandler(List<GlobalFilter> globalFilters) {
 		return new FilteringWebHandler(globalFilters);
@@ -165,6 +194,14 @@ public class GatewayAutoConfiguration {
 		return new GlobalCorsProperties();
 	}
 
+	/**
+	 * Route 断言匹配器； 返回需要处理的 FilteringWebHandler
+	 * @param webHandler
+	 * @param routeLocator
+	 * @param globalCorsProperties
+	 * @param environment
+	 * @return
+	 */
 	@Bean
 	public RoutePredicateHandlerMapping routePredicateHandlerMapping(
 			FilteringWebHandler webHandler, RouteLocator routeLocator,
@@ -185,6 +222,10 @@ public class GatewayAutoConfiguration {
 		return new SecureHeadersProperties();
 	}
 
+	/**
+	 * 反向代理信息支持 ： Forwarded请求头支持过滤器
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "spring.cloud.gateway.forwarded.enabled",
 			matchIfMissing = true)
@@ -194,6 +235,10 @@ public class GatewayAutoConfiguration {
 
 	// HttpHeaderFilter beans
 
+	/**
+	 * 移除指定的 header 过滤器
+	 * @return
+	 */
 	@Bean
 	public RemoveHopByHopHeadersFilter removeHopByHopHeadersFilter() {
 		return new RemoveHopByHopHeadersFilter();
@@ -236,15 +281,15 @@ public class GatewayAutoConfiguration {
 
 	@Bean
 	public WebsocketRoutingFilter websocketRoutingFilter(WebSocketClient webSocketClient,
-			WebSocketService webSocketService,
-			ObjectProvider<List<HttpHeadersFilter>> headersFilters) {
+														 WebSocketService webSocketService,
+														 ObjectProvider<List<HttpHeadersFilter>> headersFilters) {
 		return new WebsocketRoutingFilter(webSocketClient, webSocketService,
 				headersFilters);
 	}
 
 	@Bean
 	public WeightCalculatorWebFilter weightCalculatorWebFilter(Validator validator,
-			ObjectProvider<RouteLocator> routeLocator) {
+															   ObjectProvider<RouteLocator> routeLocator) {
 		return new WeightCalculatorWebFilter(validator, routeLocator);
 	}
 
@@ -392,7 +437,7 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnBean({ RateLimiter.class, KeyResolver.class })
+	@ConditionalOnBean({RateLimiter.class, KeyResolver.class})
 	public RequestRateLimiterGatewayFilterFactory requestRateLimiterGatewayFilterFactory(
 			RateLimiter rateLimiter, KeyResolver resolver) {
 		return new RequestRateLimiterGatewayFilterFactory(rateLimiter, resolver);
@@ -475,12 +520,10 @@ public class GatewayAutoConfiguration {
 			ConnectionProvider connectionProvider;
 			if (pool.getType() == DISABLED) {
 				connectionProvider = ConnectionProvider.newConnection();
-			}
-			else if (pool.getType() == FIXED) {
+			} else if (pool.getType() == FIXED) {
 				connectionProvider = ConnectionProvider.fixed(pool.getName(),
 						pool.getMaxConnections(), pool.getAcquireTimeout());
-			}
-			else {
+			} else {
 				connectionProvider = ConnectionProvider.elastic(pool.getName());
 			}
 
@@ -528,8 +571,7 @@ public class GatewayAutoConfiguration {
 							.getTrustedX509CertificatesForTrustManager();
 					if (trustedX509Certificates.length > 0) {
 						sslContextBuilder.trustManager(trustedX509Certificates);
-					}
-					else if (ssl.isUseInsecureTrustManager()) {
+					} else if (ssl.isUseInsecureTrustManager()) {
 						sslContextBuilder
 								.trustManager(InsecureTrustManagerFactory.INSTANCE);
 					}
@@ -553,8 +595,8 @@ public class GatewayAutoConfiguration {
 		/** 初始化 NettyRoutingFilter */
 		@Bean
 		public NettyRoutingFilter routingFilter(HttpClient httpClient,
-				ObjectProvider<List<HttpHeadersFilter>> headersFilters,
-				HttpClientProperties properties) {
+												ObjectProvider<List<HttpHeadersFilter>> headersFilters,
+												HttpClientProperties properties) {
 			return new NettyRoutingFilter(httpClient, headersFilters, properties);
 		}
 
@@ -579,7 +621,7 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Configuration
-	@ConditionalOnClass({ HystrixObservableCommand.class, RxReactiveStreams.class })
+	@ConditionalOnClass({HystrixObservableCommand.class, RxReactiveStreams.class})
 	protected static class HystrixConfiguration {
 
 		@Bean

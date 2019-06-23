@@ -16,15 +16,19 @@
 
 package org.springframework.cloud.gateway.filter.headers;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.server.ServerWebExchange;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * 作用： 对Request/Response 移除指定对header头
+ *
+ */
 @ConfigurationProperties("spring.cloud.gateway.filter.remove-hop-by-hop")
 public class RemoveHopByHopHeadersFilter implements HttpHeadersFilter, Ordered {
 

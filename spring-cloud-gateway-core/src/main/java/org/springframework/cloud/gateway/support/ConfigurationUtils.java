@@ -16,9 +16,6 @@
 
 package org.springframework.cloud.gateway.support;
 
-import java.util.Collections;
-import java.util.Map;
-
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -30,6 +27,9 @@ import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Validator;
 
+import java.util.Collections;
+import java.util.Map;
+
 public abstract class ConfigurationUtils {
 
 	public static void bind(Object o, Map<String, Object> properties,
@@ -37,11 +37,22 @@ public abstract class ConfigurationUtils {
 		bind(o, properties, configurationPropertyName, bindingName, validator, null);
 	}
 
+	/**
+	 * 绑定properties 中的属性到 对象 o上
+	 * @param o								config对象
+	 * @param properties					配置属性集合
+	 * @param configurationPropertyName		配置名称 ：""
+	 * @param bindingName
+	 * @param validator
+	 * @param conversionService
+	 */
 	public static void bind(Object o, Map<String, Object> properties,
 			String configurationPropertyName, String bindingName, Validator validator,
 			ConversionService conversionService) {
+		// 找到对象
 		Object toBind = getTargetObject(o);
 
+		// 绑定属性
 		new Binder(
 				Collections.singletonList(new MapConfigurationPropertySource(properties)),
 				null, conversionService).bind(configurationPropertyName,

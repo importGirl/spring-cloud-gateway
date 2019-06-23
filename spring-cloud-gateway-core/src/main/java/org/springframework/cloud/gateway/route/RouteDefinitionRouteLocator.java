@@ -124,10 +124,22 @@ public class RouteDefinitionRouteLocator
 		});
 	}
 
+	/**
+	 * ////核心方法////
+	 * 获得所有路由 Route
+	 *
+	 * @return
+	 */
 	@Override
 	public Flux<Route> getRoutes() {
-		return this.routeDefinitionLocator.getRouteDefinitions().map(this::convertToRoute)
+
+		return this.routeDefinitionLocator
+				// 获得 路由定义器
+				.getRouteDefinitions()
+				// 转换 RouteDefinitions -> Route
+				.map(this::convertToRoute)
 				// TODO: error handling
+				// 打印日志
 				.map(route -> {
 					if (logger.isDebugEnabled()) {
 						logger.debug("RouteDefinition matched: " + route.getId());
@@ -143,11 +155,13 @@ public class RouteDefinitionRouteLocator
 
 	/**
 	 * 将 RouteDefinition 转换成 Route
+	 * RouteDefinition: Predicate、gatewayFilters
+	 *
 	 * @param routeDefinition
 	 * @return
 	 */
 	private Route convertToRoute(RouteDefinition routeDefinition) {
-		// 合并 Predicates
+		// 合并 Predicates 表达式数组； 得到判断结果 predicate
 		AsyncPredicate<ServerWebExchange> predicate = combinePredicates(routeDefinition);
 		// 获得 GatewayFilter
 		List<GatewayFilter> gatewayFilters = getFilters(routeDefinition);
@@ -158,7 +172,7 @@ public class RouteDefinitionRouteLocator
 	}
 
 	/**
-	 * filterDefinitions的配置定义 转换成 GatewayFilter
+	 * FilterDefinitions的配置定义 转换成 GatewayFilter
 	 * @param id
 	 * @param filterDefinitions
 	 * @return
@@ -166,6 +180,7 @@ public class RouteDefinitionRouteLocator
 	@SuppressWarnings("unchecked")
 	private List<GatewayFilter> loadGatewayFilters(String id,
 			List<FilterDefinition> filterDefinitions) {
+		// 过滤器集合
 		List<GatewayFilter> filters = filterDefinitions.stream().map(definition -> {
 			// 获得 GatewayFilterFactory
 			GatewayFilterFactory factory = this.gatewayFilterFactories
@@ -175,7 +190,7 @@ public class RouteDefinitionRouteLocator
 						"Unable to find GatewayFilterFactory with name "
 								+ definition.getName());
 			}
-			//
+
 			Map<String, String> args = definition.getArgs();
 			if (logger.isDebugEnabled()) {
 				logger.debug("RouteDefinition " + id + " applying filter " + args + " to "
@@ -186,7 +201,7 @@ public class RouteDefinitionRouteLocator
 			Map<String, Object> properties = factory.shortcutType().normalize(args,
 					factory, this.parser, this.beanFactory);
 
-			// 绑定配置属性 Binder实现
+			// 绑定配置对象 Config ; Binder实现
 			Object configuration = factory.newConfig();
 
 			ConfigurationUtils.bind(configuration, properties,
@@ -195,13 +210,14 @@ public class RouteDefinitionRouteLocator
 
 			// 返回 GatewayFilter
 			GatewayFilter gatewayFilter = factory.apply(configuration);
+			// 发布过滤器事件
 			if (this.publisher != null) {
 				this.publisher.publishEvent(new FilterArgsEvent(this, id, properties));
 			}
 			return gatewayFilter;
 		}).collect(Collectors.toList());
 
-		// 添加 GatewayFilter
+		// 添加 GatewayFilter， 转换为 OrderedGatewayFilter
 		ArrayList<GatewayFilter> ordered = new ArrayList<>(filters.size());
 		for (int i = 0; i < filters.size(); i++) {
 			GatewayFilter gatewayFilter = filters.get(i);
@@ -218,6 +234,7 @@ public class RouteDefinitionRouteLocator
 
 	/**
 	 * 获得 GatewayFilter 列表
+	 * RouteDefinition -> GatewayFilter 的转换
 	 * @param routeDefinition
 	 * @return
 	 */
@@ -242,18 +259,23 @@ public class RouteDefinitionRouteLocator
 		return filters;
 	}
 
+	/**
+	 * 合并 AsyncPredicate； 并对合并的AsyncPredicate 表达式数组进行链式判断（and=&&、or=||）
+	 * @param routeDefinition
+	 * @return
+	 */
 	private AsyncPredicate<ServerWebExchange> combinePredicates(
 			RouteDefinition routeDefinition) {
-		// 获得 Predicates 列表
+		// 获得 Predicates 列表； 转换：PredicateDefinition -> Predicate
 		List<PredicateDefinition> predicates = routeDefinition.getPredicates();
 		AsyncPredicate<ServerWebExchange> predicate = lookup(routeDefinition,
 				predicates.get(0));
 
-		// 拼接 Predicates
-		for (PredicateDefinition andPredicate : predicates.subList(1,
-				predicates.size())) {
+		// Predicates 表达式数组拼接判断
+		for (PredicateDefinition andPredicate : predicates.subList(1, predicates.size())) {
 			AsyncPredicate<ServerWebExchange> found = lookup(routeDefinition,
 					andPredicate);
+			// 执行 and 判断操作（&&）
 			predicate = predicate.and(found);
 		}
 
@@ -261,7 +283,7 @@ public class RouteDefinitionRouteLocator
 	}
 
 	/**
-	 * 获得 AsyncPredicate
+	 * 获得 AsyncPredicate: PredicateDefinition定义器 -> AsyncPredicate
 	 * @param route
 	 * @param predicate
 	 * @return
@@ -276,24 +298,26 @@ public class RouteDefinitionRouteLocator
 					"Unable to find RoutePredicateFactory with name "
 							+ predicate.getName());
 		}
-		// 获得
+		// 参数
 		Map<String, String> args = predicate.getArgs();
 		if (logger.isDebugEnabled()) {
 			logger.debug("RouteDefinition " + route.getId() + " applying " + args + " to "
 					+ predicate.getName());
 		}
 
-		// TODO ?
+		// 解析参数 args; ${} spingEL解析
 		Map<String, Object> properties = factory.shortcutType().normalize(args, factory,
 				this.parser, this.beanFactory);
+		// 创建配置类并绑定
 		Object config = factory.newConfig();
 		ConfigurationUtils.bind(config, properties, factory.shortcutFieldPrefix(),
 				predicate.getName(), validator, conversionService);
+		// 发布事件
 		if (this.publisher != null) {
 			this.publisher.publishEvent(
 					new PredicateArgsEvent(this, route.getId(), properties));
 		}
-		// 获得 AsyncPredicate
+		// 生产 AsyncPredicate
 		return factory.applyAsync(config);
 	}
 

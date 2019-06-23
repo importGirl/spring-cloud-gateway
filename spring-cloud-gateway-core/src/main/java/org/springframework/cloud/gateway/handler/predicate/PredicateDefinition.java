@@ -28,6 +28,7 @@ import java.util.Objects;
 import static org.springframework.util.StringUtils.tokenizeToStringArray;
 
 /**
+ * 条件定义器： name、args 属性
  * @author Spencer Gibb
  */
 @Validated
